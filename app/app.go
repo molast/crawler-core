@@ -383,7 +383,6 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 	self.setTask(&t)
 
 	for i, sp := range self.SpiderQueue.GetAll() {
-
 		t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
 		spidersNum++
 
@@ -649,6 +648,7 @@ func (self *Logic) setAppConf(task *distribute.Task) {
 	self.AppConf.ProxySecond = task.ProxySecond
 	self.AppConf.Keyins = task.Keyins
 }
+
 func (self *Logic) setTask(task *distribute.Task) {
 	task.ThreadNum = self.AppConf.ThreadNum
 	task.Pausetime = self.AppConf.Pausetime

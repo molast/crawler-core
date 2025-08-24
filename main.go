@@ -1,130 +1,69 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
+	"encoding/json"
+	"log"
+	"net/http"
 
 	"github.com/molast/crawler-core/app"
-	"github.com/molast/crawler-core/logs"
 	"github.com/molast/crawler-core/runtime/cache"
 	"github.com/molast/crawler-core/runtime/status"
+
+	_ "github.com/molast/crawler-core/pholcus_lib"
 )
 
-var (
-	spiderflag *string
-)
+type CrawlerRequest struct {
+	Keyins         string `json:"keyins"`          // 自定义输入，后期切分为多个任务的Keyin自定义配置
+	Limit          int64  `json:"limit"`           // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
+	OutType        string `json:"out_type"`        // 输出方式 (如 json/csv/db)
+	ThreadNum      int    `json:"thread_num"`      // 全局最大并发量
+	Pausetime      int64  `json:"pause_time"`      // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
+	ProxySecond    int64  `json:"proxy_second"`    // 代理IP更换的间隔秒数
+	DockerCap      int    `json:"docker_cap"`      // 分段转储容器容量
+	SuccessInherit bool   `json:"success_inherit"` // 继承历史成功记录
+	FailureInherit bool   `json:"failure_inherit"` // 继承历史失败记录
+}
 
 func main() {
 	app.LogicApp.Init(cache.Task.Mode, cache.Task.Port, cache.Task.Master)
 	if cache.Task.Mode == status.UNSET {
 		return
 	}
-	run()
+
+	go func() {
+		run()
+	}()
+
+	http.HandleFunc("/add_task", addTaskHandler)
+	log.Println("HTTP 服务已启动: http://localhost:8080")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func loop() {
-	for {
-		parseInput()
-		run()
+func addTaskHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
+		return
 	}
+	var req CrawlerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	// 这里可以保存到全局 cache 或者任务队列
+	// 比如：cache.Task = req
+
+	log.Printf("收到新任务: %+v\n", req)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+		"task":   req,
+	})
 }
 
 func run() {
 	sps := app.LogicApp.GetSpiderLib()
 	app.LogicApp.SpiderPrepare(sps).Run()
-}
-
-func parseInput() {
-	logs.Log.Informational("\n添加任务参数——必填：%v\n添加任务参数——必填可选：%v\n", "-c_spider", []string{
-		"-a_keyins",
-		"-a_limit",
-		"-a_outtype",
-		"-a_thread",
-		"-a_pause",
-		"-a_proxysecond",
-		"-a_dockercap",
-		"-a_success",
-		"-a_failure"})
-	logs.Log.Informational("\n添加任务：\n")
-retry:
-	*spiderflag = ""
-	input := [12]string{}
-	fmt.Scanln(&input[0], &input[1], &input[2], &input[3], &input[4], &input[5], &input[6], &input[7], &input[8], &input[9])
-	if strings.Index(input[0], "=") < 4 {
-		logs.Log.Informational("\n添加任务的参数不正确，请重新输入：")
-		goto retry
-	}
-	for _, v := range input {
-		i := strings.Index(v, "=")
-		if i < 4 {
-			continue
-		}
-		key, value := v[:i], v[i+1:]
-		switch key {
-		case "-a_keyins":
-			cache.Task.Keyins = value
-		case "-a_limit":
-			limit, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				break
-			}
-			cache.Task.Limit = limit
-		case "-a_outtype":
-			cache.Task.OutType = value
-		case "-a_thread":
-			thread, err := strconv.Atoi(value)
-			if err != nil {
-				break
-			}
-			cache.Task.ThreadNum = thread
-		case "-a_pause":
-			pause, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				break
-			}
-			cache.Task.Pausetime = pause
-		case "-a_proxysecond":
-			proxySecond, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				break
-			}
-			cache.Task.ProxySecond = proxySecond
-		case "-a_dockercap":
-			dockercap, err := strconv.Atoi(value)
-			if err != nil {
-				break
-			}
-			if dockercap < 1 {
-				dockercap = 1
-			}
-			cache.Task.DockerCap = dockercap
-		case "-a_success":
-			if value == "true" {
-				cache.Task.SuccessInherit = true
-			} else if value == "false" {
-				cache.Task.SuccessInherit = false
-			}
-		case "-a_failure":
-			if value == "true" {
-				cache.Task.FailureInherit = true
-			} else if value == "false" {
-				cache.Task.FailureInherit = false
-			}
-		case "-c_spider":
-			*spiderflag = value
-		default:
-			logs.Log.Informational("\n不可含有未知参数,必填参数:%v\n可选参数:%v\n", "-c_spider", []string{
-				"-a_keyins",
-				"-a_limit",
-				"-a_outtype",
-				"-a_thread",
-				"-a_pause",
-				"-a_proxysecond",
-				"-a_dockercap",
-				"-a_success",
-				"-a_failure"})
-			goto retry
-		}
-	}
 }
