@@ -2,7 +2,6 @@ package spider
 
 import (
 	"bytes"
-	"github.com/PuerkitoBio/goquery"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -13,6 +12,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html/charset"
 
 	"github.com/molast/crawler-core/app/downloader/request"

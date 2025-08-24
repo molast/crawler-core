@@ -1,6 +1,9 @@
 package collector
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/molast/crawler-core/logs"
 )
 
@@ -35,9 +38,14 @@ func (self *Collector) outputData() {
 
 	// 输出统计
 	self.addDataSum(dataLen)
-
+	var err error
 	// 执行输出
-	err := DataOutput[self.outType](self)
+	if f, ok := DataOutput[self.outType]; ok {
+		err = f(self)
+	} else {
+		err = errors.New(fmt.Sprintf(" *     Fail  [数据输出：%s | 输出格式%s不支持，支持类型，%v]",
+			self.Spider.GetName(), self.outType, DataOutputLib))
+	}
 
 	logs.Log.Informational(" * ")
 	if err != nil {

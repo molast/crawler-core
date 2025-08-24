@@ -13,8 +13,8 @@ import (
 	"github.com/molast/crawler-core/logs"
 )
 
-/************************ Mysql 输出 ***************************/
-//sql转换结构体
+// MyTable /************************ Mysql 输出 ***************************/
+// sql转换结构体
 type MyTable struct {
 	tableName        string
 	columnNames      [][2]string   // 标题字段
@@ -56,21 +56,21 @@ func New() *MyTable {
 	return &MyTable{}
 }
 
-func (m *MyTable) Clone() *MyTable {
+func (self *MyTable) Clone() *MyTable {
 	return &MyTable{
-		tableName:        m.tableName,
-		columnNames:      m.columnNames,
-		customPrimaryKey: m.customPrimaryKey,
+		tableName:        self.tableName,
+		columnNames:      self.columnNames,
+		customPrimaryKey: self.customPrimaryKey,
 	}
 }
 
-// 设置表名
+// SetTableName 设置表名
 func (self *MyTable) SetTableName(name string) *MyTable {
 	self.tableName = wrapSqlKey(name)
 	return self
 }
 
-// 设置表单列
+// AddColumn 设置表单列
 func (self *MyTable) AddColumn(names ...string) *MyTable {
 	for _, name := range names {
 		name = strings.Trim(name, " ")
@@ -80,14 +80,14 @@ func (self *MyTable) AddColumn(names ...string) *MyTable {
 	return self
 }
 
-// 设置主键的语句（可选）
+// CustomPrimaryKey 设置主键的语句（可选）
 func (self *MyTable) CustomPrimaryKey(primaryKeyCode string) *MyTable {
 	self.AddColumn(primaryKeyCode)
 	self.customPrimaryKey = true
 	return self
 }
 
-// 生成"创建表单"的语句，执行前须保证SetTableName()、AddColumn()已经执行
+// Create 生成"创建表单"的语句，执行前须保证SetTableName()、AddColumn()已经执行
 func (self *MyTable) Create() error {
 	if len(self.columnNames) == 0 {
 		return errors.New("Column can not be empty")
@@ -114,7 +114,7 @@ func (self *MyTable) Create() error {
 	return err
 }
 
-// 清空表单，执行前须保证SetTableName()已经执行
+// Truncate 清空表单，执行前须保证SetTableName()已经执行
 func (self *MyTable) Truncate() error {
 	maxConnChan <- true
 	defer func() {
@@ -133,7 +133,7 @@ func (self *MyTable) addRow(value []string) *MyTable {
 	return self
 }
 
-// 智能插入数据，每次1行
+// AutoInsert 智能插入数据，每次1行
 func (self *MyTable) AutoInsert(value []string) *MyTable {
 	if self.rowsCount > 100 {
 		util.CheckErr(self.FlushInsert())
@@ -155,7 +155,7 @@ func (self *MyTable) AutoInsert(value []string) *MyTable {
 	return self.addRow(value)
 }
 
-// 向sqlCode添加"插入数据"的语句，执行前须保证Create()、AutoInsert()已经执行
+// FlushInsert 向sqlCode添加"插入数据"的语句，执行前须保证Create()、AutoInsert()已经执行
 func (self *MyTable) FlushInsert() error {
 	if self.rowsCount == 0 {
 		return nil
@@ -197,7 +197,7 @@ func (self *MyTable) FlushInsert() error {
 	return err
 }
 
-// 获取全部数据
+// SelectAll 获取全部数据
 func (self *MyTable) SelectAll() (*sql.Rows, error) {
 	if self.tableName == "" {
 		return nil, errors.New("表名不能为空")
