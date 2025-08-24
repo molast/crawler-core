@@ -31,8 +31,8 @@ const (
 	mgoconngcsecond       int64  = 600                                         // mongodb连接池GC时间，单位秒
 	mysqlconnstring       string = "root:@tcp(127.0.0.1:3306)"                 // mysql连接字符串
 	mysqlconncap          int    = 2048                                        // mysql连接池容量
-	mysqlmaxallowedpacket int    = 1048576                                     //mysql通信缓冲区的最大长度，单位B，默认1MB
-	kafkabrokers          string = "127.0.0.1:9092"                            //kafka broker字符串,逗号分割
+	mysqlmaxallowedpacket int    = 1048576                                     // mysql通信缓冲区的最大长度，单位B，默认1MB
+	kafkabrokers          string = "127.0.0.1:9092"                            // kafka broker字符串,逗号分割
 
 	mode                   = status.UNSET // 节点角色
 	autoOpenBrowser bool   = false        // 是否自动打开浏览器
