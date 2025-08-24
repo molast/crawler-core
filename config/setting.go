@@ -1,10 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/molast/crawler-core/runtime/status"
 	"github.com/spf13/viper"
@@ -48,35 +48,46 @@ const (
 	failure         bool   = true         // 继承历史失败记录
 )
 
-func init() {
-	// 配置文件路径和类型
-	viper.SetConfigFile(CONFIG)
-	viper.SetConfigType("yaml")
+var (
+	_viper *viper.Viper
+	_once  sync.Once
+)
 
-	// 确保目录存在
-	os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
-	os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
-	os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
+var setting = initViper()
 
-	// 尝试读取配置文件
-	if err := viper.ReadInConfig(); err != nil {
-		// 文件不存在，写入默认配置
-		defaultConfig(viper.GetViper())
-		if err := viper.WriteConfigAs(CONFIG); err != nil {
-			log.Fatalf("写入默认配置失败: %v", err)
+func initViper() *viper.Viper {
+	_once.Do(func() {
+		v := viper.New()
+		v.SetConfigFile(CONFIG)
+		v.SetConfigType("yaml")
+
+		// 先确保目录存在
+		_ = os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
+		_ = os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
+		_ = os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
+
+		// 尝试读取配置文件
+		if err := v.ReadInConfig(); err != nil {
+			// 文件不存在，写入默认配置
+			defaultConfig(v)
+			if err := v.WriteConfigAs(CONFIG); err != nil {
+				log.Fatalf("写入默认配置失败: %v", err)
+			}
+		} else {
+			// 文件存在，检查并填充缺省值
+			trySet(v)
+			if err := v.WriteConfig(); err != nil {
+				log.Fatalf("更新配置失败: %v", err)
+			}
 		}
-	} else {
-		// 文件存在，检查并填充缺省值
-		trySet(viper.GetViper())
-		if err := viper.WriteConfig(); err != nil {
-			log.Fatalf("更新配置失败: %v", err)
-		}
-	}
 
-	// 创建配置中的目录
-	os.MkdirAll(filepath.Clean(viper.GetString("spiderdir")), 0777)
-	os.MkdirAll(filepath.Clean(viper.GetString("fileoutdir")), 0777)
-	os.MkdirAll(filepath.Clean(viper.GetString("textoutdir")), 0777)
+		// 创建配置中的目录
+		_ = os.MkdirAll(filepath.Clean(v.GetString("spiderdir")), 0777)
+		_ = os.MkdirAll(filepath.Clean(v.GetString("fileoutdir")), 0777)
+		_ = os.MkdirAll(filepath.Clean(v.GetString("textoutdir")), 0777)
+		_viper = v
+	})
+	return _viper
 }
 
 func defaultConfig(v *viper.Viper) {
@@ -136,17 +147,17 @@ func trySet(v *viper.Viper) {
 	}
 	v.Set("log.level", level)
 
-	consolelevel := v.GetString("log.consolelevel")
-	if logLevel(consolelevel) == -10 {
-		consolelevel = logconsolelevel
+	consoleLevel := v.GetString("log.consolelevel")
+	if logLevel(consoleLevel) == -10 {
+		consoleLevel = logconsolelevel
 	}
-	v.Set("log.consolelevel", logLevel2(consolelevel, level))
+	v.Set("log.consolelevel", logLevel2(consoleLevel, level))
 
-	feedbacklevel := v.GetString("log.feedbacklevel")
-	if logLevel(feedbacklevel) == -10 {
-		feedbacklevel = logfeedbacklevel
+	feedbackLevel := v.GetString("log.feedbacklevel")
+	if logLevel(feedbackLevel) == -10 {
+		feedbackLevel = logfeedbacklevel
 	}
-	v.Set("log.feedbacklevel", logLevel2(feedbacklevel, level))
+	v.Set("log.feedbacklevel", logLevel2(feedbackLevel, level))
 
 	if !v.IsSet("log.lineinfo") {
 		v.Set("log.lineinfo", loglineinfo)
@@ -244,7 +255,7 @@ func trySet(v *viper.Viper) {
 	if err := v.WriteConfig(); err != nil {
 		// 如果没有文件，用 WriteConfigAs 创建
 		if err := v.WriteConfigAs(CONFIG); err != nil {
-			fmt.Println("写配置失败:", err)
+			log.Fatal("写配置失败:", err)
 		}
 	}
 }
