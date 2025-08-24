@@ -2,18 +2,18 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 
-	"github.com/molast/crawler-core/common/config"
 	"github.com/molast/crawler-core/runtime/status"
+	"github.com/spf13/viper"
 )
 
 // 配置文件涉及的默认配置。
 const (
-	crawlcap int = 50 // 蜘蛛池最大容量
-	// datachancap             int    = 2 << 14                     // 收集器容量(默认65536)
+	crawlcap              int    = 50                                          // 蜘蛛池最大容量
+	datachancap           int    = 2 << 14                                     // 收集器容量(默认65536)
 	logcap                int64  = 10000                                       // 日志缓存的容量
 	loglevel              string = "debug"                                     // 全局日志打印级别（亦是日志文件输出级别）
 	logconsolelevel       string = "info"                                      // 日志在控制台的显示级别
@@ -48,210 +48,205 @@ const (
 	failure         bool   = true         // 继承历史失败记录
 )
 
-var setting = func() config.Configer {
+func init() {
+	// 配置文件路径和类型
+	viper.SetConfigFile(CONFIG)
+	viper.SetConfigType("yaml")
+
+	// 确保目录存在
 	os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
 	os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
 	os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
 
-	iniconf, err := config.NewConfig("ini", CONFIG)
-	if err != nil {
-		file, err := os.Create(CONFIG)
-		file.Close()
-		iniconf, err = config.NewConfig("ini", CONFIG)
-		if err != nil {
-			panic(err)
+	// 尝试读取配置文件
+	if err := viper.ReadInConfig(); err != nil {
+		// 文件不存在，写入默认配置
+		defaultConfig(viper.GetViper())
+		if err := viper.WriteConfigAs(CONFIG); err != nil {
+			log.Fatalf("写入默认配置失败: %v", err)
 		}
-		defaultConfig(iniconf)
-		iniconf.SaveConfigFile(CONFIG)
 	} else {
-		trySet(iniconf)
+		// 文件存在，检查并填充缺省值
+		trySet(viper.GetViper())
+		if err := viper.WriteConfig(); err != nil {
+			log.Fatalf("更新配置失败: %v", err)
+		}
 	}
 
-	os.MkdirAll(filepath.Clean(iniconf.String("spiderdir")), 0777)
-	os.MkdirAll(filepath.Clean(iniconf.String("fileoutdir")), 0777)
-	os.MkdirAll(filepath.Clean(iniconf.String("textoutdir")), 0777)
-
-	return iniconf
-}()
-
-func defaultConfig(iniconf config.Configer) {
-	iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
-	// iniconf.Set("datachancap", strconv.Itoa(datachancap))
-	iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
-	iniconf.Set("log::level", loglevel)
-	iniconf.Set("log::consolelevel", logconsolelevel)
-	iniconf.Set("log::feedbacklevel", logfeedbacklevel)
-	iniconf.Set("log::lineinfo", fmt.Sprint(loglineinfo))
-	iniconf.Set("log::save", fmt.Sprint(logsave))
-	iniconf.Set("phantomjs", phantomjs)
-	iniconf.Set("proxylib", proxylib)
-	iniconf.Set("spiderdir", spiderdir)
-	iniconf.Set("fileoutdir", fileoutdir)
-	iniconf.Set("textoutdir", textoutdir)
-	iniconf.Set("dbname", dbname)
-	iniconf.Set("mgo::username", "")
-	iniconf.Set("mgo::password", "")
-	iniconf.Set("mgo::connstring", mgoconnstring)
-	iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
-	iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
-	iniconf.Set("mysql::connstring", mysqlconnstring)
-	iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
-	iniconf.Set("mysql::maxallowedpacket", strconv.Itoa(mysqlmaxallowedpacket))
-	iniconf.Set("kafka::brokers", kafkabrokers)
-	iniconf.Set("run::mode", strconv.Itoa(mode))
-	iniconf.Set("run::port", strconv.Itoa(port))
-	iniconf.Set("run::master", master)
-	iniconf.Set("run::thread", strconv.Itoa(thread))
-	iniconf.Set("run::pause", strconv.FormatInt(pause, 10))
-	iniconf.Set("run::outtype", outtype)
-	iniconf.Set("run::dockercap", strconv.Itoa(dockercap))
-	iniconf.Set("run::limit", strconv.FormatInt(limit, 10))
-	iniconf.Set("run::proxysecond", strconv.FormatInt(proxysecond, 10))
-	iniconf.Set("run::success", fmt.Sprint(success))
-	iniconf.Set("run::failure", fmt.Sprint(failure))
-	iniconf.Set("run::autoopenbrowser", fmt.Sprint(autoOpenBrowser))
+	// 创建配置中的目录
+	os.MkdirAll(filepath.Clean(viper.GetString("spiderdir")), 0777)
+	os.MkdirAll(filepath.Clean(viper.GetString("fileoutdir")), 0777)
+	os.MkdirAll(filepath.Clean(viper.GetString("textoutdir")), 0777)
 }
 
-func trySet(iniconf config.Configer) {
-	if v, e := iniconf.Int("crawlcap"); v <= 0 || e != nil {
-		iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
+func defaultConfig(v *viper.Viper) {
+	v.SetDefault("crawlcap", crawlcap)
+	v.SetDefault("log.cap", logcap)
+	v.SetDefault("log.level", loglevel)
+	v.SetDefault("log.consolelevel", logconsolelevel)
+	v.SetDefault("log.feedbacklevel", logfeedbacklevel)
+	v.SetDefault("log.lineinfo", loglineinfo)
+	v.SetDefault("log.save", logsave)
+	v.SetDefault("phantomjs", phantomjs)
+	v.SetDefault("proxylib", proxylib)
+	v.SetDefault("spiderdir", spiderdir)
+	v.SetDefault("fileoutdir", fileoutdir)
+	v.SetDefault("textoutdir", textoutdir)
+	v.SetDefault("dbname", dbname)
+	v.SetDefault("mgo.username", "")
+	v.SetDefault("mgo.password", "")
+	v.SetDefault("mgo.connstring", mgoconnstring)
+	v.SetDefault("mgo.conngcsecond", mgoconngcsecond)
+	v.SetDefault("mgo.conncap", mgoconncap)
+	v.SetDefault("mysql.connstring", mysqlconnstring)
+	v.SetDefault("mysql.conncap", mysqlconncap)
+	v.SetDefault("mysql.maxallowedpacket", mysqlmaxallowedpacket)
+	v.SetDefault("kafka.brokers", kafkabrokers)
+	v.SetDefault("run.mode", mode)
+	v.SetDefault("run.port", port)
+	v.SetDefault("run.master", master)
+	v.SetDefault("run.thread", thread)
+	v.SetDefault("run.pause", pause)
+	v.SetDefault("run.outtype", outtype)
+	v.SetDefault("run.dockercap", dockercap)
+	v.SetDefault("run.limit", limit)
+	v.SetDefault("run.proxysecond", proxysecond)
+	v.SetDefault("run.success", success)
+	v.SetDefault("run.failure", failure)
+	v.SetDefault("run.autoopenbrowser", autoOpenBrowser)
+}
+
+func trySet(v *viper.Viper) {
+	// crawlcap
+	if v.GetInt("crawlcap") <= 0 {
+		v.Set("crawlcap", crawlcap)
 	}
 
-	// if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {
-	// 	iniconf.Set("datachancap", strconv.Itoa(datachancap))
-	// }
-
-	if v, e := iniconf.Int64("log::cap"); v <= 0 || e != nil {
-		iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
+	if v.GetInt("datachancap") <= 0 {
+		v.Set("datachancap", datachancap)
 	}
 
-	level := iniconf.String("log::level")
+	// log 部分
+	if v.GetInt64("log.cap") <= 0 {
+		v.Set("log.cap", logcap)
+	}
+	level := v.GetString("log.level")
 	if logLevel(level) == -10 {
 		level = loglevel
 	}
-	iniconf.Set("log::level", level)
+	v.Set("log.level", level)
 
-	consolelevel := iniconf.String("log::consolelevel")
+	consolelevel := v.GetString("log.consolelevel")
 	if logLevel(consolelevel) == -10 {
 		consolelevel = logconsolelevel
 	}
-	iniconf.Set("log::consolelevel", logLevel2(consolelevel, level))
+	v.Set("log.consolelevel", logLevel2(consolelevel, level))
 
-	feedbacklevel := iniconf.String("log::feedbacklevel")
+	feedbacklevel := v.GetString("log.feedbacklevel")
 	if logLevel(feedbacklevel) == -10 {
 		feedbacklevel = logfeedbacklevel
 	}
-	iniconf.Set("log::feedbacklevel", logLevel2(feedbacklevel, level))
+	v.Set("log.feedbacklevel", logLevel2(feedbacklevel, level))
 
-	if _, e := iniconf.Bool("log::lineinfo"); e != nil {
-		iniconf.Set("log::lineinfo", fmt.Sprint(loglineinfo))
+	if !v.IsSet("log.lineinfo") {
+		v.Set("log.lineinfo", loglineinfo)
+	}
+	if !v.IsSet("log.save") {
+		v.Set("log.save", logsave)
 	}
 
-	if _, e := iniconf.Bool("log::save"); e != nil {
-		iniconf.Set("log::save", fmt.Sprint(logsave))
+	// 路径/文件配置
+	if v.GetString("phantomjs") == "" {
+		v.Set("phantomjs", phantomjs)
+	}
+	if v.GetString("proxylib") == "" {
+		v.Set("proxylib", proxylib)
+	}
+	if v.GetString("spiderdir") == "" {
+		v.Set("spiderdir", spiderdir)
+	}
+	if v.GetString("fileoutdir") == "" {
+		v.Set("fileoutdir", fileoutdir)
+	}
+	if v.GetString("textoutdir") == "" {
+		v.Set("textoutdir", textoutdir)
+	}
+	if v.GetString("dbname") == "" {
+		v.Set("dbname", dbname)
 	}
 
-	if v := iniconf.String("phantomjs"); v == "" {
-		iniconf.Set("phantomjs", phantomjs)
+	// mgo
+	if v.GetString("mgo.connstring") == "" {
+		v.Set("mgo.connstring", mgoconnstring)
+	}
+	if v.GetInt("mgo.conncap") <= 0 {
+		v.Set("mgo.conncap", mgoconncap)
+	}
+	if v.GetInt64("mgo.conngcsecond") <= 0 {
+		v.Set("mgo.conngcsecond", mgoconngcsecond)
 	}
 
-	if v := iniconf.String("proxylib"); v == "" {
-		iniconf.Set("proxylib", proxylib)
+	// mysql
+	if v.GetString("mysql.connstring") == "" {
+		v.Set("mysql.connstring", mysqlconnstring)
+	}
+	if v.GetInt("mysql.conncap") <= 0 {
+		v.Set("mysql.conncap", mysqlconncap)
+	}
+	if v.GetInt("mysql.maxallowedpacket") <= 0 {
+		v.Set("mysql.maxallowedpacket", mysqlmaxallowedpacket)
 	}
 
-	if v := iniconf.String("spiderdir"); v == "" {
-		iniconf.Set("spiderdir", spiderdir)
+	// kafka
+	if v.GetString("kafka.brokers") == "" {
+		v.Set("kafka.brokers", kafkabrokers)
 	}
 
-	if v := iniconf.String("fileoutdir"); v == "" {
-		iniconf.Set("fileoutdir", fileoutdir)
+	// run
+	if v.GetInt("run.mode") < status.UNSET || v.GetInt("run.mode") > status.CLIENT {
+		v.Set("run.mode", mode)
+	}
+	if v.GetInt("run.port") <= 0 {
+		v.Set("run.port", port)
+	}
+	if v.GetString("run.master") == "" {
+		v.Set("run.master", master)
+	}
+	if v.GetInt("run.thread") <= 0 {
+		v.Set("run.thread", thread)
+	}
+	if v.GetInt64("run.pause") < 0 {
+		v.Set("run.pause", pause)
+	}
+	if v.GetString("run.outtype") == "" {
+		v.Set("run.outtype", outtype)
+	}
+	if v.GetInt("run.dockercap") <= 0 {
+		v.Set("run.dockercap", dockercap)
+	}
+	if v.GetInt64("run.limit") < 0 {
+		v.Set("run.limit", limit)
+	}
+	if v.GetInt64("run.proxysecond") <= 0 {
+		v.Set("run.proxysecond", proxysecond)
+	}
+	if !v.IsSet("run.success") {
+		v.Set("run.success", success)
+	}
+	if !v.IsSet("run.failure") {
+		v.Set("run.failure", failure)
+	}
+	if !v.IsSet("run.autoopenbrowser") {
+		v.Set("run.autoopenbrowser", autoOpenBrowser)
 	}
 
-	if v := iniconf.String("textoutdir"); v == "" {
-		iniconf.Set("textoutdir", textoutdir)
+	// 最后保存配置
+	if err := v.WriteConfig(); err != nil {
+		// 如果没有文件，用 WriteConfigAs 创建
+		if err := v.WriteConfigAs(CONFIG); err != nil {
+			fmt.Println("写配置失败:", err)
+		}
 	}
-
-	if v := iniconf.String("dbname"); v == "" {
-		iniconf.Set("dbname", dbname)
-	}
-
-	if v := iniconf.String("mgo::connstring"); v == "" {
-		iniconf.Set("mgo::connstring", mgoconnstring)
-	}
-
-	if v, e := iniconf.Int("mgo::conncap"); v <= 0 || e != nil {
-		iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
-	}
-
-	if v, e := iniconf.Int64("mgo::conngcsecond"); v <= 0 || e != nil {
-		iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
-	}
-
-	if v := iniconf.String("mysql::connstring"); v == "" {
-		iniconf.Set("mysql::connstring", mysqlconnstring)
-	}
-
-	if v, e := iniconf.Int("mysql::conncap"); v <= 0 || e != nil {
-		iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
-	}
-
-	if v, e := iniconf.Int("mysql::maxallowedpacket"); v <= 0 || e != nil {
-		iniconf.Set("mysql::maxallowedpacket", strconv.Itoa(mysqlmaxallowedpacket))
-	}
-
-	if v := iniconf.String("kafka::brokers"); v == "" {
-		iniconf.Set("kafka::brokers", kafkabrokers)
-	}
-
-	if v, e := iniconf.Int("run::mode"); v < status.UNSET || v > status.CLIENT || e != nil {
-		iniconf.Set("run::mode", strconv.Itoa(mode))
-	}
-
-	if v, e := iniconf.Int("run::port"); v <= 0 || e != nil {
-		iniconf.Set("run::port", strconv.Itoa(port))
-	}
-
-	if v := iniconf.String("run::master"); v == "" {
-		iniconf.Set("run::master", master)
-	}
-
-	if v, e := iniconf.Int("run::thread"); v <= 0 || e != nil {
-		iniconf.Set("run::thread", strconv.Itoa(thread))
-	}
-
-	if v, e := iniconf.Int64("run::pause"); v < 0 || e != nil {
-		iniconf.Set("run::pause", strconv.FormatInt(pause, 10))
-	}
-
-	if v := iniconf.String("run::outtype"); v == "" {
-		iniconf.Set("run::outtype", outtype)
-	}
-
-	if v, e := iniconf.Int("run::dockercap"); v <= 0 || e != nil {
-		iniconf.Set("run::dockercap", strconv.Itoa(dockercap))
-	}
-
-	if v, e := iniconf.Int64("run::limit"); v < 0 || e != nil {
-		iniconf.Set("run::limit", strconv.FormatInt(limit, 10))
-	}
-
-	if v, e := iniconf.Int64("run::proxysecond"); v <= 0 || e != nil {
-		iniconf.Set("run::proxysecond", strconv.FormatInt(proxysecond, 10))
-	}
-
-	if _, e := iniconf.Bool("run::success"); e != nil {
-		iniconf.Set("run::success", fmt.Sprint(success))
-	}
-
-	if _, e := iniconf.Bool("run::failure"); e != nil {
-		iniconf.Set("run::failure", fmt.Sprint(failure))
-	}
-
-	if _, e := iniconf.Bool("run::autoopenbrowser"); e != nil {
-		iniconf.Set("run::autoopenbrowser", fmt.Sprint(autoOpenBrowser))
-	}
-
-	iniconf.SaveConfigFile(CONFIG)
 }
 
 func logLevel2(l string, g string) string {
