@@ -1,9 +1,9 @@
 package collector
 
 import (
-	"encoding/json"
 	"fmt"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/molast/crawler-core/app/pipeline/collector/data"
 	"github.com/molast/crawler-core/common/buckets"
 	"github.com/molast/crawler-core/common/util"
@@ -55,7 +55,7 @@ func init() {
 			list[i] = cell
 		}
 
-		bs, err := json.Marshal(list)
+		bs, err := jsoniter.Marshal(list)
 		if err != nil {
 			return err
 		}
