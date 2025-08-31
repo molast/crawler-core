@@ -9,7 +9,7 @@ import (
 	"github.com/molast/crawler-core/common/pool"
 )
 
-// 传入数据库与集合名 | 返回文档总数
+// Count 传入数据库与集合名 | 返回文档总数
 type Count struct {
 	Database   string                 // 数据库
 	Collection string                 // 集合

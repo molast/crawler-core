@@ -6,7 +6,7 @@ import (
 	"github.com/molast/crawler-core/common/pool"
 )
 
-// 传入数据库列表 | 返回数据库及其集合树
+// List 传入数据库列表 | 返回数据库及其集合树
 type List struct {
 	Dbs []string //数据库名称列表
 }

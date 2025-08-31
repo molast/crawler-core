@@ -1,8 +1,9 @@
 package pinyin_test
 
 import (
-	"github.com/molast/crawler-core/common/pinyin"
 	"testing"
+
+	"github.com/molast/crawler-core/common/pinyin"
 )
 
 func TestExamplePinyin_default(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"sort"
 )
 
-// 按首字母排序
+// SortInitials 按首字母排序
 func SortInitials(strs []string) {
 	a := NewArgs()
 	l := len(strs)
