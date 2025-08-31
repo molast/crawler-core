@@ -33,7 +33,7 @@ func NewBrush(color string) Brush {
 }
 
 var colors = []Brush{
-	NewBrush("1;37"), // App	white (only for pholcus)
+	NewBrush("1;37"), // App	white (only for crawler)
 	NewBrush("1;37"), // Emergency	white
 	NewBrush("1;36"), // Alert	cyan
 	NewBrush("1;35"), // Critical	magenta

@@ -80,13 +80,13 @@ func ExtractArticle(html string) string {
 	}
 	// fmt.Println("最长段落：", ss[idx][0])
 
-	html = strings.Replace(html, ss[idx][0], `<pholcus id="pholcus">`+ss[idx][1]+`</pholcus>`, -1)
+	html = strings.Replace(html, ss[idx][0], `<crawler id="crawler">`+ss[idx][1]+`</crawler>`, -1)
 	r := strings.NewReader(html)
 	dom, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return ""
 	}
-	return dom.Find("pholcus#pholcus").Parent().Text()
+	return dom.Find("crawler#crawler").Parent().Text()
 }
 
 // Deprive 去除常见转义字符

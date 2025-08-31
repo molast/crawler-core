@@ -49,7 +49,7 @@ import (
 // RFC5424 log message levels.
 const (
 	LevelNothing = iota - 1
-	LevelApp     // only for pholcus
+	LevelApp     // only for crawler
 	LevelEmergency
 	LevelAlert
 	LevelCritical

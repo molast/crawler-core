@@ -3,14 +3,13 @@ module github.com/molast/crawler-core
 go 1.24.0
 
 require (
-	github.com/IBM/sarama v1.45.2
+	github.com/IBM/sarama v1.46.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c
 	github.com/facebookgo/freeport v0.0.0-20150612182905-d4adf43b75b9
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/robertkrimen/otto v0.5.1
 	github.com/spf13/viper v1.20.1
-	github.com/tidwall/gjson v1.18.0
 	golang.org/x/net v0.43.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )
@@ -27,8 +26,6 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
@@ -46,8 +43,6 @@ require (
 	github.com/spf13/cast v1.9.2 // indirect
 	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect

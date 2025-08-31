@@ -28,10 +28,3 @@ __debug_*
 *nohup.out
 *.sublime-project
 *.sublime-workspace
-
-pholcus
-pholcus_pkg/cache
-pholcus_pkg/file_out
-pholcus_pkg/history
-pholcus_pkg/logs
-pholcus_pkg/text_out

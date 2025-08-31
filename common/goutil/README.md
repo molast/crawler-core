@@ -1,5 +1,3 @@
-# goutil [![report card](https://goreportcard.com/badge/pholcus/common/goutil?style=flat-square)](http://goreportcard.com/report/henrylee2cn/goutil) [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/pholcus/common/goutil)
-
 Common and useful utils for the Go project development.
 
 ## 1. Inclusion criteria
