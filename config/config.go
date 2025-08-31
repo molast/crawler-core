@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	TAG string = "crawler" // 软件标识符
+	TAG string = "crawler"
 )
 
 // 默认配置。
